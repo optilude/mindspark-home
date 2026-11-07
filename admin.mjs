@@ -11,7 +11,7 @@ import { username, hashPassword } from './lib/auth.mjs';
 const root = fileURLToPath(new URL('.', import.meta.url));
 async function password() {
   if (!process.stdin.isTTY) return readFileSync(0, 'utf8').replace(/\r?\n$/, '');
-  process.stdout.write('Password (12+ characters, input hidden): ');
+  process.stdout.write('Password (8+ characters, input hidden): ');
   const muted = new Writable({ write(chunk, encoding, callback) { callback(); } });
   const rl = createInterface({ input: process.stdin, output: muted, terminal: true });
   try { return await rl.question(''); }

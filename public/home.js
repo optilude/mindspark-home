@@ -166,7 +166,7 @@ $('newMap').onclick = act(() => form('New map', [{ name: 'title', label: 'Map ti
 $('logout').onclick = act(async () => { await api('/api/logout', { method: 'POST' }); user = null; showLogin(); });
 $('password').onclick = act(() => form('Change password (signs out all sessions)', [
   { name: 'current', label: 'Current password', type: 'password', autocomplete: 'current-password' },
-  { name: 'password', label: 'New password (at least 12 characters)', type: 'password', autocomplete: 'new-password' },
+  { name: 'password', label: 'New password (at least 8 characters)', type: 'password', autocomplete: 'new-password' },
 ], async values => { await api('/api/password', { method: 'POST', body: JSON.stringify(values) }); user = null; showLogin(); }));
 async function signedIn() {
   user = await api('/api/session');

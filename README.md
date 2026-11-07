@@ -60,7 +60,7 @@ npm start
 ```
 
 The administrator command prompts for a hidden password on a terminal. Passwords
-must have at least 12 characters. Never put real passwords in command arguments,
+must have at least 8 characters. Never put real passwords in command arguments,
 Git, image layers, or deployment configuration.
 
 `APP_ORIGIN` defaults to `http://localhost:3000` locally. For another port, set both:

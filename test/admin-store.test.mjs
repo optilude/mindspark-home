@@ -11,9 +11,12 @@ import { verifyPassword, newSession, session } from '../lib/auth.mjs';
 let directory, file, store, owner;
 const map = title => ({ title, rootId: 'r', nodes: { r: { id: 'r', text: 'Root', parent: null } } });
 function admin(...args) {
+  return adminWithPassword('test-cli-password-123', ...args);
+}
+function adminWithPassword(password, ...args) {
   const response = spawnSync(process.execPath, ['--disable-warning=ExperimentalWarning',
     new URL('../admin.mjs', import.meta.url).pathname, ...args], {
-    env: { ...process.env, DB_PATH: file }, input: 'test-cli-password-123\n', encoding: 'utf8',
+    env: { ...process.env, DB_PATH: file }, input: password + '\n', encoding: 'utf8',
   });
   return response;
 }
@@ -35,6 +38,26 @@ test('CLI provisions hashed passwords; duplicate accounts fail and no password a
   assert.match(duplicate.stderr, /already exists/);
   assert.ok(!duplicate.stdout.includes('test-cli-password-123'));
   assert.equal(admin('list').status, 0);
+});
+test('CLI passwords accept eight characters and reject seven for creation and resets', async () => {
+  const rejected = adminWithPassword('boundar', 'add', 'minimum');
+  assert.equal(rejected.status, 1);
+  assert.match(rejected.stderr, /Password must contain 8 to 1024 characters/);
+  assert.equal(store.get('SELECT id FROM users WHERE username=?', 'minimum'), undefined);
+  const created = adminWithPassword('boundary', 'add', 'minimum');
+  assert.equal(created.status, 0, created.stderr);
+  const user = store.get('SELECT * FROM users WHERE username=?', 'minimum');
+  assert.ok(await verifyPassword('boundary', user.password));
+  const token = newSession(store, user, 60000).token;
+  const rejectedReset = adminWithPassword('boundar', 'reset-password', 'minimum');
+  assert.equal(rejectedReset.status, 1);
+  assert.match(rejectedReset.stderr, /Password must contain 8 to 1024 characters/);
+  assert.equal(store.get('SELECT password FROM users WHERE id=?', user.id).password, user.password);
+  assert.equal(session(store, token).id, user.id);
+  const reset = adminWithPassword('updated!', 'reset-password', 'minimum');
+  assert.equal(reset.status, 0, reset.stderr);
+  assert.ok(await verifyPassword('updated!', store.get('SELECT password FROM users WHERE id=?', user.id).password));
+  assert.equal(session(store, token), null);
 });
 test('version coalescing and retention cover exactly the last 50 minute-separated snapshots', t => {
   let now = 100000;

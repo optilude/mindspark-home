@@ -154,8 +154,13 @@ test('editor shell boots storage scoping before inline scripts and never registe
 
 test('changing passwords invalidates every session; disabled accounts cannot log in', async () => {
   const second = await login('bob');
-  assert.equal((await request('/api/password', json('POST', { current: password, password: 'new-test-password-123' }), bob)).status, 200);
+  const rejected = await request('/api/password', json('POST', { current: password, password: '1234567' }), bob);
+  assert.equal(rejected.status, 400);
+  assert.match((await rejected.json()).error, /Password must contain 8 to 1024 characters/);
+  assert.equal((await request('/api/session', {}, second)).status, 200);
+  assert.equal((await request('/api/password', json('POST', { current: password, password: 'new-test' }), bob)).status, 200);
   assert.equal((await request('/api/session', {}, second)).status, 401);
+  assert.equal((await request('/api/login', json('POST', { username: 'bob', password: 'new-test' }))).status, 200);
   app.store.run('UPDATE users SET disabled=1 WHERE id=?', 'alice');
   assert.equal((await request('/api/session', {}, alice)).status, 401);
   assert.equal((await request('/api/login', json('POST', { username: 'alice', password }))).status, 401);
