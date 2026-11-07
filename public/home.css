@@ -9,17 +9,40 @@ button:hover { background: #f4e9df; }
 button:focus-visible, a:focus-visible { outline: 3px solid #b44825; outline-offset: 2px; }
 button:disabled { opacity: .6; cursor: wait; }
 a { color: #974028; }
-main { display: grid; grid-template-columns: minmax(220px, 28%) 1fr; gap: 2rem; padding: 1rem 2rem; }
+main { display: grid; grid-template-columns: minmax(230px, 26%) minmax(0, 1fr); gap: 1.5rem; padding: 1rem 2rem; }
 aside { border-right: 1px solid #ddd; padding-right: 1rem; overflow: auto; }
 aside > button { display: block; width: 100%; margin-bottom: .5rem; text-align: left; }
 nav ul { list-style: none; padding-left: 1rem; }
 nav > ul { padding-left: 0; }
 nav button { border: 0; background: none; text-align: left; overflow-wrap: anywhere; }
 nav button[aria-current] { font-weight: bold; background: #f4e9df; }
+.tree-row { display: flex; align-items: center; gap: .15rem; }
+.folder-name, .file-name { display: flex; align-items: center; gap: .65rem; min-width: 0; text-align: left; }
+.folder-name { flex: 1; padding: .4rem; }
+.root-folder { width: 100%; }
+.tree-toggle { width: 24px; padding: .3rem; flex-shrink: 0; }
+.tree-toggle::before { content: ''; display: inline-block; width: 6px; height: 6px; border-right: 2px solid; border-bottom: 2px solid; transform: rotate(-45deg); }
+.tree-toggle[aria-expanded="true"]::before { transform: rotate(45deg); }
+.tree-toggle:disabled { visibility: hidden; }
+.folder-icon, .map-icon { display: inline-block; width: 21px; height: 16px; border: 1px solid #b38a32; background: #f3cd79; border-radius: 2px; flex-shrink: 0; position: relative; }
+.folder-icon::before { content: ''; position: absolute; top: -5px; left: -1px; width: 9px; height: 4px; background: #f3cd79; border: 1px solid #b38a32; border-bottom: 0; border-radius: 2px 2px 0 0; }
+.map-icon { width: 17px; height: 21px; background: #fff; border-color: #8e9eb1; }
+.map-icon::after { content: ''; position: absolute; left: 4px; top: 6px; width: 7px; height: 5px; border-top: 1px solid #8e9eb1; border-bottom: 1px solid #8e9eb1; }
+.item-menu { position: relative; flex-shrink: 0; }
+.item-menu summary { cursor: pointer; list-style: none; padding: .2rem .6rem; border-radius: .3rem; font-weight: bold; }
+.item-menu summary::-webkit-details-marker { display: none; }
+.item-menu summary:hover, .item-menu[open] summary { background: #f4e9df; }
+.menu-items { position: absolute; right: 0; top: 100%; z-index: 10; min-width: 150px; padding: .3rem; background: #fff; border: 1px solid #ddd; box-shadow: 0 4px 16px #0002; border-radius: .4rem; }
+.menu-items button { display: block; width: 100%; text-align: left; border: 0; }
+#breadcrumbs { margin-bottom: .5rem; overflow-wrap: anywhere; }
 .actions { display: flex; flex-wrap: wrap; gap: .5rem; }
 #maps { list-style: none; padding: 0; }
-#maps li { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; padding: 1rem; margin-bottom: .5rem; background: #fff; border: 1px solid #ddd; border-radius: .5rem; }
-#maps li > a { font-weight: 600; flex: 1; overflow-wrap: anywhere; }
+.file-heading, #maps li { display: grid; grid-template-columns: minmax(0, 1fr) 165px 36px; align-items: center; gap: .75rem; padding: .65rem; }
+.file-heading { margin-top: 1rem; border-bottom: 1px solid #ddd; font-size: .85rem; color: #716961; }
+#maps li { background: #fff; border-bottom: 1px solid #eee; }
+#maps li:hover { background: #f5efe8; }
+.file-name { font-weight: 500; overflow-wrap: anywhere; border: 0; background: none; padding: .3rem 0; text-decoration: none; color: inherit; }
+#maps li > .item-menu { justify-self: end; }
 .hint, time, footer { color: #716961; font-size: .875rem; }
 #message { padding: 0 2rem; color: #a12b22; }
 #login { max-width: 400px; margin: 3rem auto; padding: 1.5rem; background: white; border: 1px solid #ddd; border-radius: .5rem; }
@@ -30,4 +53,4 @@ dialog::backdrop { background: #0006; }
 #dialogError { color: #a12b22; }
 footer { padding: 1rem 2rem; border-top: 1px solid #ddd; }
 [hidden] { display: none !important; }
-@media (max-width: 720px) { main { grid-template-columns: 1fr; gap: .5rem; padding: 1rem; } aside { border: 0; } header { padding: 1rem; } }
+@media (max-width: 720px) { main { grid-template-columns: 1fr; gap: .5rem; padding: 1rem; } aside { border: 0; max-height: 240px; } header { padding: 1rem; } .file-heading, #maps li { grid-template-columns: minmax(0, 1fr) 36px; } .file-heading span:nth-child(2), #maps time, #maps li > span { display: none; } }

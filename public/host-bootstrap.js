@@ -26,7 +26,9 @@ const sessionStorage = scopedStorage('sessionStorage', 'mindspark-home:' + works
 
 window.MINDSPARK_HOST = (() => {
   let csrf;
+  let currentFolder = null, account, navigation;
   const tags = new Map();
+  const folderAssignments = new Map();
   function onError(error) {
     console.error('MindSpark Home:', error);
     const show = () => {
@@ -64,22 +66,58 @@ window.MINDSPARK_HOST = (() => {
       return response;
     } catch (error) { onError(error); throw error; }
   }
+  async function library() {
+    return (await request('/api/library', { headers: { 'X-Workspace-Id': workspaceId } })).json();
+  }
+  function showContext(data, folder) {
+    HomeNavigation.chain(data.folders, folder);
+    currentFolder = folder;
+    if (!navigation) {
+      navigation = document.createElement('nav');
+      navigation.id = 'home-navigation';
+      navigation.setAttribute('aria-label', 'Workspace navigation');
+      navigation.innerHTML = '<a id="home-back">Back to folders</a><span id="home-path"></span><span id="home-account"></span>';
+      document.body.prepend(navigation);
+    }
+    document.getElementById('home-back').href = HomeNavigation.folderUrl(folder);
+    HomeNavigation.breadcrumbs(document.getElementById('home-path'), data.folders, folder);
+    document.getElementById('home-account').textContent = account.username;
+    const url = new URL(location.href);
+    if (folder) url.searchParams.set('folder', folder); else url.searchParams.delete('folder');
+    window.history.replaceState(null, '', url);
+  }
   const store = {
-    async list() { return (await request('./api/maps')).json(); },
+    async list() {
+      const data = await library();
+      showContext(data, currentFolder);
+      const ids = new Set(data.maps.filter(m => m.folder === currentFolder).map(m => m.id));
+      return (await (await request('./api/maps')).json()).filter(m => ids.has(m.id));
+    },
     async get(id) {
       const response = await request('./api/maps/' + encodeURIComponent(id));
       tags.set(id, response.headers.get('etag'));
+      const data = await library(), entry = data.maps.find(m => m.id === id);
+      if (!entry) throw new Error('Map no longer exists in your library.');
+      showContext(data, entry.folder);
       return response.json();
     },
     async save(map) {
+      const folder = currentFolder;
       const body = JSON.stringify(map);
       const tag = tags.get(map.id);
+      if (!tag && folder) folderAssignments.set(map.id, folder);
       const response = await request('./api/maps/' + encodeURIComponent(map.id), {
         method: 'PUT', body,
         keepalive: new Blob([body]).size < 60000,
         headers: tag ? { 'If-Match': tag } : { 'If-None-Match': '*' },
       });
       tags.set(map.id, response.headers.get('etag'));
+      if (folderAssignments.has(map.id)) {
+        await request('/api/library/maps/' + encodeURIComponent(map.id) + '/folder', {
+          method: 'PATCH', body: JSON.stringify({ folder: folderAssignments.get(map.id) }),
+        });
+        folderAssignments.delete(map.id);
+      }
     },
     async remove(id) { await request('./api/maps/' + encodeURIComponent(id), { method: 'DELETE' }); },
     async history(id) { return (await request('./api/maps/' + encodeURIComponent(id) + '/versions')).json(); },
@@ -90,13 +128,11 @@ window.MINDSPARK_HOST = (() => {
     const user = await response.json();
     if (user.id !== workspaceId) throw new Error('Account changed. Export any edits and return to your library.');
     csrf = user.csrf;
-    await store.list();
-    const link = document.createElement('a');
-    link.href = '/library';
-    link.textContent = 'Library / ' + user.username;
-    link.title = 'Manage folders, account and maps';
-    Object.assign(link.style, { display: 'block', padding: '8px 0', fontWeight: '600' });
-    document.querySelector('.side-foot').prepend(link);
+    account = user;
+    const data = await library(), params = new URLSearchParams(location.search);
+    const mapId = params.get('map'), entry = mapId ? data.maps.find(m => m.id === mapId) : null;
+    if (mapId && !entry) throw new Error('Map not found in your library.');
+    showContext(data, entry ? entry.folder : params.get('folder') || null);
   }
   return { store, ready, onError, shareBase: location.origin + '/' };
 })();

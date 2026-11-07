@@ -1,0 +1,8 @@
+body:has(#home-navigation) { display: flex; flex-direction: column; height: calc(100dvh / var(--ui-zoom, 1)); overflow: hidden; }
+/* Fixed mobile editor panels belong below the host navigation, not over it. */
+body:has(#home-navigation) > .app { height: auto; flex: 1; min-height: 0; width: 100%; contain: layout; }
+#home-navigation { flex-shrink: 0; display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; padding: 10px 16px; border-bottom: 1px solid var(--chrome-edge, #ddd); background: var(--chrome-bg, #fff); color: var(--ink, #292524); font: 14px/1.5 system-ui, sans-serif; z-index: 5; }
+#home-navigation a { color: inherit; }
+#home-back { font-weight: 650; text-decoration: none; padding: 5px 10px; border: 1px solid var(--chrome-edge, #ddd); border-radius: 6px; }
+#home-path { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+#home-account { color: var(--ink-soft, #716961); font-size: 12px; }

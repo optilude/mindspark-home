@@ -64,7 +64,7 @@ export async function createApp(options = {}) {
   const policy = shell.match(/<meta http-equiv="Content-Security-Policy" content="([^"]+)"/)?.[1];
   if (!policy) throw new Error('MindSpark CSP could not be found.');
   const hostedShell = shell.replace('<meta charset="utf-8" />',
-    '<meta charset="utf-8" />\n<script src="./host-bootstrap.js"></script>');
+    '<meta charset="utf-8" />\n<link rel="stylesheet" href="/host.css">\n<script src="/navigation.js"></script>\n<script src="./host-bootstrap.js"></script>');
   if (hostedShell === shell) throw new Error('MindSpark HTML integration point changed.');
   const dummyPassword = await hashPassword('dummy password never used for login');
   const limiter = new LoginLimiter();
@@ -210,7 +210,7 @@ export async function createApp(options = {}) {
       }
       if (method === 'GET' && ['/', '/login', '/library'].includes(path))
         return send(res, 200, readFileSync(join(root, 'public', 'index.html')), mime['.html']);
-      if (method === 'GET' && ['/home.js', '/home.css'].includes(path))
+      if (method === 'GET' && ['/home.js', '/home.css', '/navigation.js', '/host.css'].includes(path))
         return send(res, 200, readFileSync(join(root, 'public', path.slice(1))), mime[extname(path)]);
       fail(404, 'Not found.');
     } catch (e) {

@@ -58,6 +58,11 @@ Nested folders are hosting metadata in a dedicated library. Autosaves cannot
 overwrite folder membership, and importing a map cannot choose another owner's
 folder. This keeps changes to the original editor extremely small. It is an
 intentional UX difference from adding folders directly to MindSpark's sidebar.
+The library presents an expandable folder tree and the selected folder's contents,
+with per-item action menus. My maps is the top-level folder. The hosted editor
+lists only sibling maps and has a persistent Back to folders link plus clickable
+breadcrumbs above its canvas; the URL retains the folder selection. New maps in
+the editor inherit that folder, including retries if assignment fails.
 
 ### Authentication
 

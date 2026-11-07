@@ -1,8 +1,8 @@
 'use strict';
 const $ = id => document.getElementById(id);
-let user, library, current;
-const allMaps = Symbol('all');
-current = allMaps;
+let user, library;
+let current = new URLSearchParams(location.search).get('folder') || null;
+const collapsed = new Set();
 function message(error) { $('message').textContent = error.message; console.error(error); }
 async function api(path, options = {}) {
   const response = await fetch(path, { ...options, cache: 'no-store',
@@ -40,60 +40,107 @@ function button(text, fn) {
   return element;
 }
 function pathFor(id) {
-  const parts = [], seen = new Set();
-  while (id) {
-    if (seen.has(id)) throw new Error('Invalid folder hierarchy.');
-    seen.add(id);
-    const folder = library.folders.find(f => f.id === id);
-    if (!folder) throw new Error('Folder not found.');
-    parts.unshift(folder.name);
-    id = folder.parent;
-  }
-  return '/' + parts.join('/');
+  return HomeNavigation.chain(library.folders, id).map(f => f.name).join(' / ');
 }
-function choose(id) { current = id; render(); }
+function choose(id) {
+  current = id;
+  for (const folder of HomeNavigation.chain(library.folders, id)) if (folder.id !== id) collapsed.delete(folder.id);
+  history.pushState(null, '', HomeNavigation.folderUrl(id));
+  render();
+}
+function icon(kind) {
+  const element = document.createElement('span');
+  element.className = kind + '-icon';
+  element.setAttribute('aria-hidden', 'true');
+  return element;
+}
+function folderMenu(folder) {
+  return menu(folder.name, [
+    ['New subfolder', () => newFolder(folder.id)],
+    ['Rename', () => form('Rename folder', [{ name: 'name', label: 'Folder name', value: folder.name }],
+      async values => { await api('/api/folders/' + folder.id, { method: 'PATCH', body: JSON.stringify(values) }); await refresh(); })],
+    ['Move', () => form('Move folder', [{ name: 'parent', label: 'Destination', options: destinations(folder.id), value: folder.parent }],
+      async values => { await api('/api/folders/' + folder.id, { method: 'PATCH', body: JSON.stringify({ parent: values.parent || null }) }); await refresh(); })],
+    ['Delete', () => form('Delete empty folder', [{ name: 'confirm', label: 'Type DELETE to confirm. Non-empty folders cannot be deleted.' }],
+      async values => { if (values.confirm !== 'DELETE') throw new Error('Type DELETE to confirm.'); await api('/api/folders/' + folder.id, { method: 'DELETE' }); await refresh(); })],
+  ]);
+}
+function menu(name, actions) {
+  const details = document.createElement('details'), summary = document.createElement('summary'), items = document.createElement('div');
+  details.className = 'item-menu';
+  summary.textContent = '...';
+  summary.setAttribute('aria-label', 'Actions for ' + name);
+  items.className = 'menu-items';
+  for (const [label, fn] of actions) items.append(button(label, () => { details.open = false; return fn(); }));
+  details.append(summary, items);
+  details.addEventListener('toggle', () => {
+    if (details.open) for (const other of document.querySelectorAll('.item-menu')) if (other !== details) other.open = false;
+  });
+  return details;
+}
 function render() {
-  if (current !== allMaps && current !== null && !library.folders.some(f => f.id === current)) current = null;
-  $('location').textContent = current === allMaps ? 'All maps' : current === null ? 'Unfiled / root folders' : pathFor(current);
-  for (const id of ['renameFolder', 'moveFolder', 'deleteFolder']) $(id).hidden = current === allMaps || current === null;
+  if (current && !library.folders.some(f => f.id === current)) {
+    current = null;
+    history.replaceState(null, '', HomeNavigation.folderUrl(null));
+  }
+  HomeNavigation.breadcrumbs($('breadcrumbs'), library.folders, current);
+  $('location').textContent = current ? library.folders.find(f => f.id === current).name : 'My maps';
   const tree = (parent, ancestors = new Set()) => {
     const ul = document.createElement('ul');
     for (const folder of library.folders.filter(f => f.parent === parent)) {
       if (ancestors.has(folder.id)) throw new Error('Invalid folder hierarchy.');
-      const li = document.createElement('li'), item = button(folder.name, () => choose(folder.id));
+      const li = document.createElement('li'), row = document.createElement('div'), item = button(folder.name, () => choose(folder.id));
+      row.className = 'tree-row';
+      item.className = 'folder-name';
+      item.prepend(icon('folder'));
       if (folder.id === current) item.setAttribute('aria-current', 'page');
-      li.append(item, tree(folder.id, new Set([...ancestors, folder.id])));
+      const children = tree(folder.id, new Set([...ancestors, folder.id]));
+      const toggle = button('', () => {
+        if (collapsed.has(folder.id)) collapsed.delete(folder.id); else collapsed.add(folder.id);
+        render();
+      });
+      toggle.className = 'tree-toggle';
+      toggle.setAttribute('aria-label', (collapsed.has(folder.id) ? 'Expand ' : 'Collapse ') + folder.name);
+      toggle.setAttribute('aria-expanded', String(!collapsed.has(folder.id)));
+      toggle.disabled = !children.childNodes.length;
+      children.hidden = collapsed.has(folder.id);
+      row.append(toggle, item, folderMenu(folder));
+      li.append(row, children);
       ul.append(li);
     }
     return ul;
   };
-  $('folders').replaceChildren(tree(null));
-  $('subfolders').replaceChildren();
-  if (current !== allMaps)
-    for (const folder of library.folders.filter(f => f.parent === current))
-      $('subfolders').append(button('Folder: ' + folder.name, () => choose(folder.id)), document.createTextNode(' '));
+  const root = button('My maps', () => choose(null));
+  root.className = 'folder-name root-folder';
+  root.prepend(icon('folder'));
+  if (current === null) root.setAttribute('aria-current', 'page');
+  $('folders').replaceChildren(root, tree(null));
   $('maps').replaceChildren();
-  const maps = library.maps.filter(m => current === allMaps || m.folder === current);
+  for (const folder of library.folders.filter(f => f.parent === current)) {
+    const li = document.createElement('li'), open = button(folder.name, () => choose(folder.id));
+    open.className = 'file-name';
+    open.prepend(icon('folder'));
+    li.append(open, document.createElement('span'), folderMenu(folder));
+    $('maps').append(li);
+  }
+  const maps = library.maps.filter(m => m.folder === current);
   for (const map of maps) {
     const li = document.createElement('li'), link = document.createElement('a'), time = document.createElement('time');
-    link.href = `/w/${user.id}/?map=${encodeURIComponent(map.id)}`;
+    link.href = `/w/${user.id}/?map=${encodeURIComponent(map.id)}` + (current ? '&folder=' + encodeURIComponent(current) : '');
     link.textContent = map.title;
+    link.className = 'file-name';
+    link.prepend(icon('map'));
     time.dateTime = new Date(map.updated).toISOString();
     time.textContent = new Date(map.updated).toLocaleString();
-    li.append(link, time, button('Move', () => moveMap(map)), button('Delete', async () => {
+    li.append(link, time, menu(map.title, [['Move', () => moveMap(map)], ['Delete', async () => {
       await form('Delete map', [{ name: 'confirm', label: `Type DELETE to permanently delete "${map.title}" and its history.` }], async values => {
         if (values.confirm !== 'DELETE') throw new Error('Type DELETE to confirm.');
         await api(`/w/${user.id}/api/maps/${map.id}`, { method: 'DELETE' }); await refresh();
       });
-    }));
-    if (current === allMaps) {
-      const location = document.createElement('small');
-      location.textContent = map.folder ? pathFor(map.folder) : 'Unfiled';
-      li.append(location);
-    }
+    }]]));
     $('maps').append(li);
   }
-  if (!maps.length) $('maps').textContent = 'No maps here yet.';
+  if (!$('maps').childNodes.length) $('maps').textContent = 'This folder is empty. Create a map or folder to get started.';
 }
 async function refresh() {
   library = await api('/api/library');
@@ -109,7 +156,7 @@ function destinations(exclude) {
     for (const folder of library.folders)
       if (blocked.has(folder.parent) && !blocked.has(folder.id)) { blocked.add(folder.id); changed = true; }
   } while (changed);
-  return [{ value: '', label: 'Root / Unfiled' },
+  return [{ value: '', label: 'My maps' },
     ...library.folders.filter(f => !blocked.has(f.id)).map(f => ({ value: f.id, label: pathFor(f.id) }))];
 }
 function form(title, fields, submit) {
@@ -141,27 +188,30 @@ function moveMap(map) {
     async values => { await api(`/api/library/maps/${map.id}/folder`, { method: 'PATCH', body: JSON.stringify({ folder: values.folder || null }) }); await refresh(); });
 }
 $('cancel').onclick = () => $('dialog').close();
-$('all').onclick = () => choose(allMaps);
-$('root').onclick = () => choose(null);
+window.addEventListener('popstate', () => { current = new URLSearchParams(location.search).get('folder') || null; if (library) render(); });
+document.addEventListener('click', event => {
+  for (const item of document.querySelectorAll('.item-menu')) if (!item.contains(event.target)) item.open = false;
+});
+document.addEventListener('contextmenu', event => {
+  const item = event.target.closest('.tree-row, #maps li')?.querySelector('.item-menu');
+  if (item) { event.preventDefault(); item.open = true; }
+});
 $('refresh').onclick = act(refresh);
-$('newFolder').onclick = act(() => form('New folder', [{ name: 'name', label: 'Folder name' }],
-  async values => { await api('/api/folders', { method: 'POST', body: JSON.stringify({ name: values.name, parent: current === allMaps ? null : current }) }); await refresh(); }));
-$('renameFolder').onclick = act(() => form('Rename folder', [{ name: 'name', label: 'Folder name', value: library.folders.find(f => f.id === current).name }],
-  async values => { await api('/api/folders/' + current, { method: 'PATCH', body: JSON.stringify(values) }); await refresh(); }));
-$('moveFolder').onclick = act(() => form('Move folder', [{ name: 'parent', label: 'Destination', options: destinations(current) }],
-  async values => { await api('/api/folders/' + current, { method: 'PATCH', body: JSON.stringify({ parent: values.parent || null }) }); await refresh(); }));
-$('deleteFolder').onclick = act(() => form('Delete empty folder', [{ name: 'confirm', label: 'Type DELETE to confirm. Non-empty folders cannot be deleted.' }],
-  async values => { if (values.confirm !== 'DELETE') throw new Error('Type DELETE to confirm.'); await api('/api/folders/' + current, { method: 'DELETE' }); current = null; await refresh(); }));
+function newFolder(parent) {
+  return form('New folder', [{ name: 'name', label: 'Folder name' }],
+    async values => { await api('/api/folders', { method: 'POST', body: JSON.stringify({ name: values.name, parent }) }); collapsed.delete(parent); await refresh(); });
+}
+$('newFolder').onclick = act(() => newFolder(current));
 $('newMap').onclick = act(() => form('New map', [{ name: 'title', label: 'Map title' }], async values => {
   const id = crypto.randomUUID(), rootId = crypto.randomUUID();
   const map = { id, title: values.title, rootId, color: '#e0613a',
     nodes: { [rootId]: { id: rootId, parent: null, text: values.title, x: 0, y: 0, side: 'root', color: '#fff' } }, links: [] };
   await api(`/w/${user.id}/api/maps/${id}`, { method: 'PUT', headers: { 'If-None-Match': '*' }, body: JSON.stringify(map) });
-  if (current !== allMaps && current !== null) {
+  if (current !== null) {
     try { await api(`/api/library/maps/${id}/folder`, { method: 'PATCH', body: JSON.stringify({ folder: current }) }); }
-    catch (error) { await refresh(); throw new Error('Map was created in Unfiled, but could not be moved: ' + error.message); }
+    catch (error) { await refresh(); throw new Error('Map was created in My maps, but could not be moved: ' + error.message); }
   }
-  location.href = `/w/${user.id}/?map=${id}`;
+  location.href = `/w/${user.id}/?map=${id}` + (current ? '&folder=' + encodeURIComponent(current) : '');
 }));
 $('logout').onclick = act(async () => { await api('/api/logout', { method: 'POST' }); user = null; showLogin(); });
 $('password').onclick = act(() => form('Change password (signs out all sessions)', [

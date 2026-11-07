@@ -10,9 +10,13 @@ Family members need only a local username and password, not GitHub accounts.
 - One Docker container, no external services or runtime npm dependencies.
 - SQLite in a persistent volume; consistent online backups.
 
-Folders are managed in the library, **not in the editor's sidebar**. The editor has
-a **Library / username** link and still lists all your maps. Maps created in the
-library inherit the selected folder; maps created inside the editor start unfiled.
+The library works like a file manager: an expandable folder tree on the left,
+and the selected folder's maps and subfolders on the right. **My maps** is the
+top-level folder, not an aggregate view. Each folder's action menu provides
+rename, move, delete, and new-subfolder actions.
+The editor has a persistent **Back to folders** link and clickable folder
+breadcrumbs above the workspace. Returning opens the same folder; its sidebar
+lists that folder's maps. Maps created in either screen inherit the selected folder.
 Folder membership is hosting metadata, not part of exported map JSON.
 
 Snapshot share links can be opened by other family accounts after signing in.
@@ -227,7 +231,7 @@ docker compose exec app node admin.mjs import-sqlite alice /data/import/mindspar
 
 The source is opened read-only. Imports preserve map IDs and recency and up to
 50 versions per map. Duplicate IDs in the target cause the entire import to
-abort without changes. Imported maps start unfiled. For cloud-stored maps, use
+abort without changes. Imported maps start in My maps. For cloud-stored maps, use
 the existing JSON export/import in the editor.
 
 ## Updating

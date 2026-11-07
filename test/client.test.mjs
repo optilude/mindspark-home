@@ -10,10 +10,16 @@ function storage() {
     removeItem: key => data.delete(key), key: index => [...data.keys()][index] ?? null, get length() { return data.size; } };
 }
 function context(id, shared, fetch) {
-  const window = { localStorage: shared, sessionStorage: storage() };
-  const document = { body: null, addEventListener() {}, querySelector() { return { append() {} }; },
-    createElement() { return {}; } };
-  const ctx = vm.createContext({ window, document, location: { pathname: `/w/${id}/`, origin: 'https://maps.example.com' }, fetch, console: { error() {} }, Blob, Map });
+  const window = { localStorage: shared, sessionStorage: storage(), history: { replaceState() {} } };
+  const element = () => ({ childNodes: [], style: {}, append(...items) { this.childNodes.push(...items); },
+    prepend() {}, replaceChildren(...items) { this.childNodes = items; }, setAttribute() {} });
+  const elements = new Map();
+  const document = { body: element(), addEventListener() {}, createElement: element, createTextNode: text => text,
+    getElementById(id) { if (!elements.has(id)) elements.set(id, element()); return elements.get(id); } };
+  const ctx = vm.createContext({ window, document, history: [],
+    location: { pathname: `/w/${id}/`, search: '', href: `https://maps.example.com/w/${id}/`, origin: 'https://maps.example.com' },
+    fetch, console: { error() {} }, Blob, Map, URL, URLSearchParams });
+  vm.runInContext(readFileSync(new URL('../public/navigation.js', import.meta.url), 'utf8'), ctx);
   vm.runInContext(source, ctx);
   return ctx;
 }
@@ -29,17 +35,42 @@ test('account storage, enumeration and clear cannot accidentally access another 
 });
 test('hosted saves retain conditional tokens and never fall back to an unconditional POST', async () => {
   const calls = [];
+  let failMove = true;
   const ctx = context('alice', storage(), async (url, options) => {
     calls.push({ url, options });
-    return new Response(JSON.stringify({ id: 'm', nodes: {}, rootId: 'r' }), { status: 200, headers: { ETag: '"v1"', 'Content-Type': 'application/json' } });
+    if (url === '/api/library/maps/child/folder' && failMove) {
+      failMove = false;
+      return new Response(JSON.stringify({ error: 'Move failed' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
+    }
+    const data = url === '/api/session' ? { id: 'alice', username: 'alice', csrf: 'token' }
+      : url === '/api/library' ? { folders: [{ id: 'f', parent: null, name: 'Plans' }], maps: [{ id: 'm', folder: 'f' }, { id: 'outside', folder: null }] }
+      : url === './api/maps' ? [{ id: 'm' }, { id: 'outside' }] : { id: 'm', nodes: {}, rootId: 'r' };
+    return new Response(JSON.stringify(data), { status: 200, headers: { ETag: '"v1"', 'Content-Type': 'application/json' } });
   });
   const store = ctx.window.MINDSPARK_HOST.store;
+  await ctx.window.MINDSPARK_HOST.ready();
   await store.save({ id: 'new' });
   assert.equal(calls.at(-1).options.headers['If-None-Match'], '*');
   await store.get('m');
   await store.save({ id: 'm' });
   assert.equal(calls.at(-1).options.headers['If-Match'], '"v1"');
+  assert.deepEqual(Array.from(await store.list(), m => m.id), ['m']);
+  assert.equal(ctx.document.getElementById('home-back').href, '/library?folder=f');
+  await assert.rejects(store.save({ id: 'child' }), /Move failed/);
+  await store.save({ id: 'child' });
+  assert.equal(calls.filter(c => c.url === '/api/library/maps/child/folder').length, 2);
+  assert.equal(calls.at(-1).url, '/api/library/maps/child/folder');
+  assert.deepEqual(JSON.parse(calls.at(-1).options.body), { folder: 'f' });
   assert.ok(calls.every(c => c.options.method !== 'POST'));
+});
+test('folder paths preserve hierarchy and reject missing folders and cycles', () => {
+  const ctx = context('alice', storage());
+  const folders = [{ id: 'a', parent: null, name: 'Projects' }, { id: 'b', parent: 'a', name: 'Plans' }];
+  ctx.folders = folders;
+  assert.deepEqual(Array.from(vm.runInContext('HomeNavigation.chain(folders,"b")', ctx), f => f.name), ['My maps', 'Projects', 'Plans']);
+  assert.throws(() => vm.runInContext('HomeNavigation.chain(folders,"missing")', ctx), /Folder not found/);
+  folders[0].parent = 'b';
+  assert.throws(() => vm.runInContext('HomeNavigation.chain(folders,"b")', ctx), /Invalid folder hierarchy/);
 });
 test('hosted boot and save failures propagate explicitly, including conflicts', async () => {
   const ctx = context('alice', storage(), async () => new Response(JSON.stringify({ error: 'Changed elsewhere' }), { status: 412, headers: { 'Content-Type': 'application/json' } }));

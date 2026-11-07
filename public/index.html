@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MindSpark Home</title>
   <link rel="stylesheet" href="/home.css">
+  <script src="/navigation.js" defer></script>
   <script src="/home.js" defer></script>
 </head>
 <body>
@@ -17,12 +18,12 @@
     <button type="submit">Sign in</button>
   </form>
   <main id="library" hidden>
-    <aside><h2>Folders</h2><button id="all">All maps</button><button id="root">Unfiled / root folders</button><nav id="folders" aria-label="Folders"></nav></aside>
+    <aside><h2>Folders</h2><nav id="folders" aria-label="Folders"></nav></aside>
     <section>
-      <h2 id="location">All maps</h2>
-      <div class="actions"><button id="newMap">New map</button><button id="newFolder">New folder</button><button id="renameFolder" hidden>Rename folder</button><button id="moveFolder" hidden>Move folder</button><button id="deleteFolder" hidden>Delete empty folder</button><button id="refresh">Refresh</button></div>
-      <div id="subfolders"></div>
-      <p class="hint">Folders are managed here; the editor retains its full map list. New maps created inside the editor start unfiled.</p>
+      <nav id="breadcrumbs" aria-label="Folder path"></nav>
+      <h2 id="location">My maps</h2>
+      <div class="actions"><button id="newMap">New map</button><button id="newFolder">New folder</button><button id="refresh">Refresh</button></div>
+      <div class="file-heading"><span>Name</span><span>Modified</span><span></span></div>
       <ul id="maps"></ul>
     </section>
   </main>
