@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MindSpark Home</title>
+  <link rel="stylesheet" href="/home.css">
+  <script src="/home.js" defer></script>
+</head>
+<body>
+  <header><h1>MindSpark Home</h1><span id="identity"></span><button id="password" hidden>Change password</button><button id="logout" hidden>Sign out</button></header>
+  <p id="message" role="status" aria-live="polite"></p>
+  <form id="login" hidden>
+    <h2>Sign in</h2>
+    <label>Username <input name="username" autocomplete="username" required></label>
+    <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+    <button type="submit">Sign in</button>
+  </form>
+  <main id="library" hidden>
+    <aside><h2>Folders</h2><button id="all">All maps</button><button id="root">Unfiled / root folders</button><nav id="folders" aria-label="Folders"></nav></aside>
+    <section>
+      <h2 id="location">All maps</h2>
+      <div class="actions"><button id="newMap">New map</button><button id="newFolder">New folder</button><button id="renameFolder" hidden>Rename folder</button><button id="moveFolder" hidden>Move folder</button><button id="deleteFolder" hidden>Delete empty folder</button><button id="refresh">Refresh</button></div>
+      <div id="subfolders"></div>
+      <p class="hint">Folders are managed here; the editor retains its full map list. New maps created inside the editor start unfiled.</p>
+      <ul id="maps"></ul>
+    </section>
+  </main>
+  <dialog id="dialog"><form method="dialog" id="dialogForm"><h2 id="dialogTitle"></h2><div id="fields"></div><p id="dialogError" role="alert"></p><div class="actions"><button type="button" id="cancel">Cancel</button><button type="submit" id="submit">Save</button></div></form></dialog>
+  <footer>Powered by <a href="https://github.com/prasadpatil25/MindSpark" target="_blank" rel="noopener noreferrer">MindSpark</a>. Your private maps live on this server.</footer>
+</body>
+</html>

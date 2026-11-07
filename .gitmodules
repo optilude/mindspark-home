@@ -1,0 +1,3 @@
+[submodule "MindSpark"]
+	path = MindSpark
+	url = https://github.com/optilude/MindSpark.git

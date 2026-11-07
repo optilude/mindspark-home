@@ -1,0 +1,33 @@
+* { box-sizing: border-box; }
+body { margin: 0; color: #292524; background: #faf8f5; font: 16px/1.5 system-ui, sans-serif; }
+header { display: flex; align-items: center; gap: 1rem; padding: 1rem 2rem; background: #fff; border-bottom: 1px solid #ddd; flex-wrap: wrap; }
+h1 { font-size: 1.4rem; margin: 0; margin-right: auto; }
+h2 { font-size: 1.15rem; }
+button, input, select { font: inherit; padding: .5rem .75rem; border: 1px solid #bcb5ad; border-radius: .4rem; }
+button { background: #fff; cursor: pointer; }
+button:hover { background: #f4e9df; }
+button:focus-visible, a:focus-visible { outline: 3px solid #b44825; outline-offset: 2px; }
+button:disabled { opacity: .6; cursor: wait; }
+a { color: #974028; }
+main { display: grid; grid-template-columns: minmax(220px, 28%) 1fr; gap: 2rem; padding: 1rem 2rem; }
+aside { border-right: 1px solid #ddd; padding-right: 1rem; overflow: auto; }
+aside > button { display: block; width: 100%; margin-bottom: .5rem; text-align: left; }
+nav ul { list-style: none; padding-left: 1rem; }
+nav > ul { padding-left: 0; }
+nav button { border: 0; background: none; text-align: left; overflow-wrap: anywhere; }
+nav button[aria-current] { font-weight: bold; background: #f4e9df; }
+.actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+#maps { list-style: none; padding: 0; }
+#maps li { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; padding: 1rem; margin-bottom: .5rem; background: #fff; border: 1px solid #ddd; border-radius: .5rem; }
+#maps li > a { font-weight: 600; flex: 1; overflow-wrap: anywhere; }
+.hint, time, footer { color: #716961; font-size: .875rem; }
+#message { padding: 0 2rem; color: #a12b22; }
+#login { max-width: 400px; margin: 3rem auto; padding: 1.5rem; background: white; border: 1px solid #ddd; border-radius: .5rem; }
+label { display: grid; gap: .3rem; margin: 1rem 0; }
+input, select { width: 100%; }
+dialog { border: 1px solid #bcb5ad; border-radius: .5rem; width: min(500px, 90vw); }
+dialog::backdrop { background: #0006; }
+#dialogError { color: #a12b22; }
+footer { padding: 1rem 2rem; border-top: 1px solid #ddd; }
+[hidden] { display: none !important; }
+@media (max-width: 720px) { main { grid-template-columns: 1fr; gap: .5rem; padding: 1rem; } aside { border: 0; } header { padding: 1rem; } }

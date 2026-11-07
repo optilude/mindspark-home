@@ -1,0 +1,11 @@
+.git
+MindSpark/.git
+MindSpark/test
+MindSpark/docs
+MindSpark/worker
+data
+secrets
+.env
+node_modules
+test
+*.log

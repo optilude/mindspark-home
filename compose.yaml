@@ -1,0 +1,23 @@
+services:
+  app:
+    image: ${IMAGE:-ghcr.io/optilude/mindspark-home:latest}
+    build: .
+    restart: unless-stopped
+    init: true
+    environment:
+      APP_ORIGIN: ${APP_ORIGIN:?Set APP_ORIGIN to your public HTTPS origin}
+      DB_PATH: /data/home.db
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${HOST_PORT:-3000}:3000"
+    volumes:
+      - ${DATA_PATH:-mindspark-data}:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 40s
+volumes:
+  mindspark-data:

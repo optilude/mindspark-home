@@ -1,0 +1,13 @@
+{
+  "name": "mindspark-home",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Private family hosting and nested map libraries for MindSpark",
+  "license": "MIT",
+  "engines": { "node": ">=22.16.0" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.mjs",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.mjs",
+    "admin": "node --disable-warning=ExperimentalWarning admin.mjs"
+  }
+}

@@ -1,0 +1,81 @@
+name: Test and publish
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm test
+      - run: npm --prefix MindSpark test
+      - name: Syntax checks
+        run: |
+          find lib public test MindSpark/public -type f \( -name '*.js' -o -name '*.mjs' \) -print0 | xargs -0 -n1 node --check
+          node --check server.mjs
+          node --check admin.mjs
+      - name: Validate Compose
+        run: APP_ORIGIN=https://maps.example.com docker compose config --quiet
+      - name: Build image
+        run: docker build -t mindspark-home:test .
+      - name: Docker persistence smoke test
+        run: |
+          docker volume create ms-test
+          docker run -d --name ms-home -p 127.0.0.1:3000:3000 -e APP_ORIGIN=http://localhost:3000 -v ms-test:/data mindspark-home:test
+          trap 'docker logs ms-home; docker rm -f ms-home; docker volume rm ms-test' EXIT
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:3000/healthz && break
+            sleep 1
+          done
+          curl -fsS http://localhost:3000/healthz
+          printf '%s' 'ci-test-password-only' | docker exec -i ms-home node admin.mjs add alice
+          docker restart ms-home
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:3000/healthz && break
+            sleep 1
+          done
+          curl -fsS -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' \
+            -d '{"username":"alice","password":"ci-test-password-only"}' http://localhost:3000/api/login
+  publish:
+    if: github.event_name != 'pull_request'
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha
+            type=semver,pattern={{version}}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
