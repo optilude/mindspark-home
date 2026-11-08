@@ -2,8 +2,8 @@
 
 ## Reviewed baseline
 
-Fork `optilude/MindSpark` matched upstream `prasadpatil25/MindSpark` at `fc47212`
-when inspected. Its 1,487 baseline tests passed under Node 22.23.2.
+The initial review was of upstream `prasadpatil25/MindSpark` at `fc47212`. Its
+1,487 baseline tests passed under Node 22.23.2.
 
 Reviewed persistence and history in `server.js`; the storage adapters, forge
 index reconciliation, boot, map list, autosave and shared-copy flows in
