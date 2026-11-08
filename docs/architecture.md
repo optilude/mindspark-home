@@ -119,6 +119,18 @@ banner, with a route back to login/library. Hosted boot failures do not invent
 an empty library or switch to GitHub. Account expiry does not silently redirect
 away from an editor containing unsaved work.
 
+Network failures and proxy 502/503/504 responses during a save are transient.
+The adapter keeps retrying the save with backoff, up to 15 seconds apart, so the
+editor shows "Saving…", warns before the tab closes, and queues later edits. The
+banner clears once a request succeeds. A lost response may hide a write that
+reached the server. The adapter keeps the bodies of saves whose outcome is
+unknown. If a 412 follows, it re-reads the map and adopts the new token only if
+the stored content matches one of those bodies. Any other change remains a
+conflict. Saves that fail for good also trigger an unload warning. `keepalive`
+is used only for saves started while the page is hidden. Browsers share a
+64 KB keepalive quota per page, so one stalled request would make every later
+save fail at once with "Failed to fetch".
+
 ### Data and deployment
 
 One SQLite database contains users, hashed sessions, maps, folders and versions.
