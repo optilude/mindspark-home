@@ -147,7 +147,9 @@ and administrative access; use ZFS encryption if required.
 
 ## Focused upstream contribution
 
-`MindSpark/` is pinned to your fork. `feat/hosted-storage-adapter` contains only:
+The generic hosting adapter was merged upstream in
+[prasadpatil25/MindSpark#65](https://github.com/prasadpatil25/MindSpark/pull/65),
+and `MindSpark/` is now pinned to an upstream commit. The contribution contained only:
 
 1. An opt-in `window.MINDSPARK_HOST` store/readiness/error contract.
 2. Fail-closed hosted boot/load behavior; standalone defaults stay unchanged.
@@ -159,9 +161,7 @@ The wrapper injects its own bootstrap script at the existing charset marker in
 the served HTML, not into the vendored files on disk. Startup checks fail loudly
 if either that marker or the host contract disappears during an upgrade.
 
-No family account model, database schema or wrapper UI is proposed upstream.
-The small generic host adapter can be submitted as one focused PR; upstream may
-prefer a different embedding contract, so acceptance is not assumed.
+No family account model, database schema or wrapper UI was proposed upstream.
 
 Suggested PR title: **Add an opt-in storage adapter for authenticated hosts**.
 Explain why authenticated hosts cannot use silent empty-read fallbacks, and

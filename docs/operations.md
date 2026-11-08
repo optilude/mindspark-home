@@ -126,13 +126,20 @@ back to an older version may require restoring the pre-upgrade backup.
 
 ## Updating the vendored MindSpark
 
-1. Merge upstream changes into the submodule's adapter branch, or, once the
-   adapter is merged upstream, point the submodule at upstream.
+The submodule tracks upstream
+[prasadpatil25/MindSpark](https://github.com/prasadpatil25/MindSpark), pinned to
+an exact commit.
+
+1. Review the upstream changes, then move the submodule to the new commit:
+
+   ```sh
+   git -C MindSpark fetch origin
+   git -C MindSpark checkout --detach origin/main
+   ```
+
 2. Run both test suites and the browser checks in
    [architecture.md](architecture.md).
-3. Push the submodule commit.
-4. Commit the updated submodule pointer in this repository.
+3. Commit the updated submodule pointer in this repository.
 
-Always push the submodule commit before the wrapper commit, because CI must be
-able to fetch the exact pinned commit. MindSpark is never patched at build time
-or downloaded at runtime.
+MindSpark is never patched at build time or downloaded at runtime. The server
+refuses to start if the hosting contract it relies on disappears.

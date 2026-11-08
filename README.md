@@ -27,10 +27,10 @@ pinned to an exact commit. The wrapper serves MindSpark's browser assets and
 implements its storage API. It does not run MindSpark's own server.
 
 The wrapper depends on a small, opt-in hosting adapter (`window.MINDSPARK_HOST`)
-that has been proposed upstream. Until it is merged, the submodule points at a
-fork containing that adapter. With no host present, MindSpark behaves exactly as
-before. Accounts, the database schema and the folder UI live only in this
-repository.
+that is part of upstream MindSpark (merged in
+[#65](https://github.com/prasadpatil25/MindSpark/pull/65)). With no host
+present, MindSpark behaves exactly as before. Accounts, the database schema and
+the folder UI live only in this repository.
 
 See [docs/architecture.md](docs/architecture.md) for the design, security
 boundaries and limitations.
